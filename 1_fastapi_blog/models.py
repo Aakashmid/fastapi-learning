@@ -23,7 +23,7 @@ class User(Base):
         default=None,
     )
 
-    posts: Mapped[list[Post]] = relationship(back_populates="author")  # for like author.posts where author is a user object 
+    posts: Mapped[list[Post]] = relationship(back_populates="author" , cascade="all , delete-orphan")  # for like author.posts where author is a user object 
 
     @property
     def image_path(self) -> str:
