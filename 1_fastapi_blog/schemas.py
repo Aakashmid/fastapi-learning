@@ -44,7 +44,7 @@ class PostBase(BaseModel):
 
 
 class PostCreate(PostBase):
-    user_id: int  # templorary
+    pass
 
 
 # for partial update

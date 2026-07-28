@@ -53,7 +53,7 @@
 
           document.getElementById('successModal').addEventListener('hidden.bs.modal', () => {
             window.location.href = '/';
-          }, { once: true });
+          }, { once: true });  // make sure event listener called only once
         } else {
           const error = await response.json();
           document.getElementById('errorMessage').textContent = getErrorMessage(error);
