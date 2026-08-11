@@ -1,26 +1,52 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-
+from config import settings
 import models
 from database import get_db
-from schemas import PostResponse, PostCreate, PostUpdate
+from schemas import PostResponse, PostCreate, PostUpdate, PaginatedPostsResponse
 from auth import CurrentUser
 
 router = APIRouter()
 
 
 ################### Post Routes
-@router.get("", response_model=list[PostResponse])
-async def get_posts(db: Annotated[AsyncSession, Depends(get_db)]):
+@router.get("", response_model=PaginatedPostsResponse)
+async def get_posts(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    skip:Annotated[int,Query(ge=0)] = 0 ,
+    limit:Annotated[int,Query(ge=1,le=100)]=settings.posts_per_page,
+):
+
+    # count total posts
+    count_results = await db.execute(
+        select(func.count()).select_from(models.Post),
+    )
+
+    total = count_results.scalar() or 0
+    
     result = await db.execute(
-        select(models.Post).options(selectinload(models.Post.author)),
+        select(models.Post)
+        .options(selectinload(models.Post.author))
+        .order_by(models.Post.date_posted.desc())
+        .offset(skip)
+        .limit(limit),
     )
     posts = result.scalars().all()
-    return posts
+
+    has_more = skip + len(posts) < total
+
+    return PaginatedPostsResponse(
+        posts=[PostResponse.model_validate(post) for post in posts],
+        total=total,
+        skip=skip,
+        limit=limit,
+        has_more=has_more,
+    )
+
 
 
 @router.post(
@@ -135,6 +161,6 @@ async def delete_post(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to update this post",
         )
-    
+
     await db.delete(post)
     await db.commit()
