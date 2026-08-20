@@ -8,3 +8,6 @@ __pycache__/
 *.pyd
 
 blog.db/
+
+populate_images/
+profile_pics/
