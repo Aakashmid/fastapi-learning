@@ -45,6 +45,7 @@ class Post(Base):
     content: Mapped[str] = mapped_column(Text, nullable=False)
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    likes: Mapped[int] = mapped_column(Integer, default=0, server_default="0")  # use server_default to set default to already create data
 
     date_posted: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 

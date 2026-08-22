@@ -17,7 +17,7 @@ USERS = [
         "username": "CoreyMSchafer",
         "email": "CoreyMSchafer@gmail.com",
         "password": "TestPassword1!",
-        "image": "1.png",
+        "image": "corey.png",
     },
     {
         "username": "DefaultDude",
@@ -29,25 +29,25 @@ USERS = [
         "username": "WillowTheCat",
         "email": "TestEmail3@test.com",
         "password": "TestPassword3!",
-        "image": "2.png",
+        "image": "willow.png",
     },
     {
         "username": "FarmDogs",
         "email": "TestEmail4@test.com",
         "password": "TestPassword4!",
-        "image": "3.png",
+        "image": "farmdogs.png",
     },
     {
         "username": "PoppyTheCoder",
         "email": "TestEmail5@test.com",
         "password": "TestPassword5!",
-        "image": "1.png",
+        "image": "poppy.png",
     },
     {
         "username": "GoodBoyBronx",
         "email": "TestEmail6@test.com",
         "password": "TestPassword6!",
-        "image": "2.png",
+        "image": "bronx.png",
     },
 ]
 
@@ -233,7 +233,6 @@ POST_44 = {
 }
 
 
-# delete existing data from database and local storage so don't get error if  run this script multiple times 
 async def clear_existing_data() -> None:
     # Delete profile pictures from local storage
     if PROFILE_PICS_DIR.exists():
@@ -244,6 +243,7 @@ async def clear_existing_data() -> None:
 
     # Clear database tables (order respects foreign keys)
     async with AsyncSessionLocal() as db:
+        await db.execute(delete(models.PasswordResetToken))
         await db.execute(delete(models.Post))
         await db.execute(delete(models.User))
         await db.commit()
@@ -316,10 +316,10 @@ async def populate() -> None:
                 },
             )
             response.raise_for_status()
-            token = response.json()["access_token"]  # for authentication in further api requests
+            token = response.json()["access_token"]
 
-            if image_name := user_data.get("image"):  # if user data has image name
-                image_path = POPULATE_IMAGES_DIR / image_name   # create path  of image
+            if image_name := user_data.get("image"):
+                image_path = POPULATE_IMAGES_DIR / image_name
                 if image_path.exists():
                     response = await client.patch(
                         f"/api/users/{user['id']}/picture",
@@ -370,7 +370,7 @@ async def populate() -> None:
             )
 
         print("\nUpdating post dates...")
-        await update_post_dates() 
+        await update_post_dates()
 
     await engine.dispose()
 
