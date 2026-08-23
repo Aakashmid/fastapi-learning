@@ -9,5 +9,7 @@ __pycache__/
 
 blog.db/
 
+learn_test.py
+
 populate_images/
 profile_pics/

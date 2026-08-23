@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from PIL import UnidentifiedImageError
 from sqlalchemy.orm import selectinload
 from starlette.concurrency import run_in_threadpool
-from utils.image_utils import process_profile_image, delete_profile_image
+from utils.image_utils import process_profile_image, delete_profile_image , upload_profile_image
 
 import models
 
@@ -46,6 +46,8 @@ from schemas import (
     ForgetPasswordRequest,
     ChangePasswordRequest,
 )
+
+from botocore.exceptions import  ClientError
 
 router = APIRouter()
 
@@ -360,8 +362,19 @@ async def delete_user(
 
     result = await db.execute(select(models.User).where(models.User.id == user_id))
     user = result.scalars().first()
-    await db.delete(user)  # here current_user will also work inplace of user
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    old_filename = user.image_file
+
+    await db.delete(user)
     await db.commit()
+
+    if old_filename:
+        await delete_profile_image(old_filename)
 
 
 @router.patch("/{user_id}/picture", response_model=UserPrivate)
@@ -388,12 +401,22 @@ async def update_profile_picture(
             detail=f"File too large. Maximum size is {settings.max_upload_size_bytes // (1024 * 1024)}MB",
         )
 
+
     try:
-        new_filename = await run_in_threadpool(process_profile_image, content)
+        processed_content,new_filename = await run_in_threadpool(process_profile_image, content)
     except UnidentifiedImageError as err:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid image file. Please upload a valid image (JPEG, PNG, GIF, WebP).",
+        ) from err
+
+
+    try:
+        await upload_profile_image(processed_content,new_filename)
+    except ClientError as err:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to upload image please try again"
         ) from err
 
     old_filename = current_user.image_file
@@ -405,7 +428,7 @@ async def update_profile_picture(
     await db.refresh(current_user)
 
     if old_filename:
-        delete_profile_image(old_filename)
+        await delete_profile_image(old_filename)
 
     return current_user
 
@@ -434,6 +457,6 @@ async def delete_user_picture(
     await db.commit()
     await db.refresh(current_user)
 
-    delete_profile_image(old_filename)
+    await delete_profile_image(old_filename)
 
     return current_user

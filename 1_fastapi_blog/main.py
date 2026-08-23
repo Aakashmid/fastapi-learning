@@ -7,6 +7,7 @@ from fastapi.exception_handlers import (
     http_exception_handler,
     request_validation_exception_handler,
 )
+
 from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -30,7 +31,6 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
-app.mount("/media", StaticFiles(directory="media"), name="media")
 
 templates = Jinja2Templates(directory="templates")
 
